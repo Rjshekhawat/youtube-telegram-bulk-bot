@@ -31,13 +31,26 @@ Channel IDs may be numeric IDs (often negative for channels) or public channel u
 
 ## Commands
 - `/start` — welcome and command list
-- `/status` — show which destinations are configured
-- `/news Your news text` — publish a news item
-- `/question Your question and options` — publish a question
-- `/pdf Your document text` — create and publish a PDF
+- `/status` — show channel counts
+- `/addchannel news @channelusername` — add a News destination
+- `/addchannel question @channelusername` — add a Questions destination
+- `/addchannel pdf @channelusername` — add a PDF destination
+- `/channels` — list destinations and their IDs
+- `/removechannel ID` — remove one destination
+- `/news Your news text` — publish to all configured News destinations
+- `/question Your question and options` — publish to all configured Questions destinations
+- `/pdf Your document text` — create and publish a PDF to all configured PDF destinations
 - `/help` — show help
 
 Publishing commands are restricted to configured admin user IDs.
+
+## Adding channels from Telegram
+1. Add the bot as an administrator to the target channel and allow it to post messages/documents.
+2. Open a private chat with the bot and run `/addchannel news @yourchannel`, or use `question` / `pdf` instead of `news`.
+3. Use `/channels` to check the list. Use `/removechannel ID` to remove a destination.
+4. Set `ADMIN_USER_IDS` in hosting secrets to your numeric Telegram user ID; only those IDs can change channels or publish. Never leave this blank in production.
+
+Channel settings are stored in SQLite (`bot_manager.sqlite3`). The host must provide persistent disk/storage for these settings to survive redeploys or restarts. Do not rely on an ephemeral filesystem.
 
 ## Stability design
 Each module is kept in its own file. A module-level error is logged and returned as a clear message; it should not terminate the bot process. Keep backups before making changes and test changes before deployment. No architecture can guarantee zero downtime, and free hosting may sleep or stop services.
