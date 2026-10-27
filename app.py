@@ -1,5 +1,8 @@
 """Single Telegram bot with independent, dynamically configured channel modules."""
 import logging
+import os
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -160,13 +163,33 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.error("Unhandled Telegram update error", exc_info=context.error)
 
 
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = b"Special Education Needs Bot Manager is running."
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format, *args):
+        logger.info("Health check: " + format, *args)
+
+
+def start_health_server() -> None:
+    # Render Web Services require an HTTP listener on 0.0.0.0:$PORT.
+    port = int(os.getenv("PORT", "10000"))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    logger.info("Health endpoint listening on port %s", port)
+
+
 def main() -> None:
     if not config.BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN environment variable is missing.")
     if not config.ADMIN_USER_IDS:
         logger.warning("ADMIN_USER_IDS is empty; management commands will be blocked.")
-    app = Application.builder().token(config.BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
+    start_health_server()\n    app = Application.builder().token(config.BOT_TOKEN).build()\n    app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("status", status))
     app.add_handler(CommandHandler("addchannel", addchannel))
